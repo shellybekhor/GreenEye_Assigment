@@ -5,13 +5,17 @@
 #include <thread>
 #include <mutex>
 #include <chrono>
-
+#include <vector>
+#include <condition_variable>
+#include <fstream>
+#include <ctype.h>
 
 
 typedef std::queue<std::pair<std::string, int>> tasksQue;
 
-bool done[3] = {true, true, true};
+tasksQue que;
 std::mutex queMutex;
+std::condition_variable condition;
 
 
 int grayImage(cv::Mat& img, cv::Mat& result)
@@ -39,7 +43,7 @@ int grayImage(cv::Mat& img, cv::Mat& result)
 }
 
 
-int operateImage(std::string filepath, int num, int threadid)
+int operateImage(std::string filepath, int num)
 {
     cv::Mat image;
     image = cv::imread(filepath, cv::IMREAD_COLOR);
@@ -52,8 +56,6 @@ int operateImage(std::string filepath, int num, int threadid)
     cv::Mat result(image.rows, image.cols, CV_8UC1);
 	grayImage(image, result);
 	cv::imwrite("image_" + std::to_string(num) + ".jpg", result);
-
-	done[threadid] = true;
 }
 
 
@@ -67,9 +69,7 @@ tasksQue iterateImages(std::string folderName)
         if (!boost::filesystem::is_directory(f->path())) // eliminate directories
         {
             std::string fn = f->path().filename().string();
-//        	std::cout << fn << std::endl;
         	que.push(std::make_pair(f->path().string(), ++i));
-
         }
         else
             continue;
@@ -79,72 +79,92 @@ tasksQue iterateImages(std::string folderName)
 }
 
 
-int threads(std::string folderName)
+void threadFunction()
 {
-	tasksQue que = iterateImages(folderName);
-	std::thread threads[3];
-
-	while (! que.empty())
+	while (true)
 	{
-		for (int i=0; i < 3; i++)
+		queMutex.lock();
+		if (que.empty())
 		{
-			if (done[i]) {
-				queMutex.lock();
-				std::pair<std::string, int> p = que.front();
-				que.pop();
-				queMutex.unlock();
-
-				if (threads[i].joinable())
-					threads[i].join();
-
-				threads[i] = std::thread(operateImage, p.first, p.second, i);
-				done[i] = false;
-				std::cout << "running thread: " << i << std::endl;
-			}
+			queMutex.unlock();
+			return;
 		}
+		std::pair<std::string, int> p = que.front();
+		que.pop();
+		queMutex.unlock();
+
+		operateImage(p.first, p.second);
+		std::cout << "running image: " << p.second << std::endl;
 	}
-	threads[0].join();
-	threads[1].join();
-	threads[2].join();
-	return 0;
 }
 
 
-int singleThread(std::string folderName)
+int threads(int numThreads)
 {
-	tasksQue que = iterateImages(folderName);
-	while (! que.empty())
+	std::vector<std::thread> threadsPool;
+
+	for (int i=0; i < numThreads-1; i++)
 	{
-		std::pair<std::string, int> p = que.front();
-		que.pop();
-		operateImage(p.first, p.second, 0);
+		threadsPool.push_back(std::thread(threadFunction));
 	}
+	threadFunction(); // this thread is working too!
+
+	for (std::thread &every_thread: threadsPool)
+	{
+		every_thread.join();
+	}
+	threadsPool.clear();
+	return 0;
 }
 
 
 int main(int argc, char** argv)
 {
-    if ( argc != 2 )
+    if ( argc < 2 )
     {
-        printf("usage: DisplayImage.out <Image_Path>\n");
+        printf("usage: DisplayImage <Images_Directory>\n");
         return -1;
     }
-//    std::string folder = argv[1];
-    std::string folder = "/home/ian/Documents/Shelly/opencv/DisplayImage/images/";
+    std::string folder = argv[1];
+    int numOfThreads = 2;
+    if (argc > 2)
+    {
+    	if (! isdigit(argv[2][0]))
+    	{
+    		printf("second input is not a number, using defult number of threads: 2\n");
+    	}
+    	else
+    	{
+    		std::cout << argv[2] <<std::endl ;
+    		numOfThreads = std::stoi(std::string(argv[2]));
+    	}
+    }
+    int maxThreads = numOfThreads;
+    if (argc > 3)
+    {
+    	if (isdigit(argv[3][0])){
+    		maxThreads = std::atoi(argv[3]);
+    		printf("Will run compression between %d threads to %d\n", numOfThreads, maxThreads);
+    	}
+    }
 
-    auto t1 = std::chrono::high_resolution_clock::now();
-    threads(folder);
-    auto t2 = std::chrono::high_resolution_clock::now();
-    auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
+    std::ofstream myfile;
+    myfile.open ("durations.txt");
+    for (int i=numOfThreads; i<maxThreads+1; i++)
+    {
+    	que = iterateImages(folder); // init task queue
+    	printf("Start working with %d threads\n", i);
 
+    	auto t1 = std::chrono::high_resolution_clock::now();
+		threads(i);
+		auto t2 = std::chrono::high_resolution_clock::now();
+		auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
 
-    t1 = std::chrono::high_resolution_clock::now();
-    singleThread(folder);
-	t2 = std::chrono::high_resolution_clock::now();
-    auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
+		myfile << duration1 << " " << i << std::endl;
+		std::cout << i << " threads took: " << duration1 << std::endl;
+    }
 
-    std::cout << "d1:" << duration1 << std::endl;
-    std::cout << "d2:" << duration2 << std::endl;
+    myfile.close();
 
     return 0;
 }
