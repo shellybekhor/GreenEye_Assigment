@@ -1,0 +1,31 @@
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+	GreenEye Assigment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Files:
+	- GrayImages.cpp: main code file
+	- CMakeLists.txt: cmake file
+	- plotFraph.py: python script to plot fraph of duraion as function of threads
+	- images: folder containing 10 images
+
+
+Requirements:
+	- openCV library
+	- Boost 
+
+
+Compiling and Running:
+	- cmake .
+	- make
+	- ./GrayImages <Images Folder> <number of threads> <max of threads to compare>
+
+
+Running Commands Examples:
+	- ./GrayImages ~/images/ 1  ->  will run with 1 thread only.
+	- ./GrayImages ~/images/ 4  ->  will run with 4 threads.
+	- ./GrayImages ~/images/ 3 7  ->  will run with 3 to 7 threads (will run 4 times)
+
+
