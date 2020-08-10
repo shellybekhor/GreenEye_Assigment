@@ -1,8 +1,8 @@
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	GreenEye Assigment
+	 GreenEye Assigment
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 Files:
@@ -27,5 +27,17 @@ Running Commands Examples:
 	- ./GrayImages images/  ->  will run with defult number of threads (2).
 	- ./GrayImages images/ 1  ->  will run with 1 thread only.
 	- ./GrayImages images/ 4  ->  will run with 4 threads.
-	- ./GrayImages images/ 3 7  ->  will run with 3 to 7 threads (will run 4 times).
+	- ./GrayImages images/ 3 7  ->  will run with 3 to 7 threads (will run 5 times).
 
+
+Some explanations:
+	The main program, GrayImage, is reciving folder with images and number of threads to run the X function on each 
+	of the images. Threre is an option to add a second number to the input and this why the program will run
+	several times, as number of threads is given. for example: running with the input 3 7 will run the program
+	4 times, with 3, 4, 5, 6 and then with 7 threads.  
+	The program will output to a file named "durations.txt" with the time durations for each number of threads.
+	With the script "plotGraph.py" we can output a graph shows the results from "durations.txt" file.
+	
+	For running the script (only after running the GrayImage program) use this command:
+	python3 plotGraph.py
+	  
