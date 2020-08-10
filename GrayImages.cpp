@@ -17,12 +17,11 @@ std::mutex queMutex;
 
 int grayImage(cv::Mat& img, cv::Mat& result)
 {
-
 	int h = img.rows;
 	int w = img.cols;
 	int c = img.channels();
 
-	if ((c != 3) or h != result.rows or w != result.cols)
+	if ((c != 3) || h != result.rows || w != result.cols)
 	{
 		std::cout << "invalid parameters" << std::endl;
 		return -1;
@@ -71,7 +70,6 @@ tasksQue iterateImages(std::string folderName)
         else
             continue;
     }
-
     return que;
 }
 
@@ -91,7 +89,7 @@ void threadFunction()
 		queMutex.unlock();
 
 		operateImage(p.first, p.second);
-		std::cout << "running image: " << p.second << std::endl;
+		std::cout << "done working on image: " << p.second << std::endl;
 	}
 }
 
@@ -104,7 +102,7 @@ int threads(int numThreads)
 	{
 		threadsPool.push_back(std::thread(threadFunction));
 	}
-	threadFunction(); // this thread is working too!
+	threadFunction(); // main thread is working too!
 
 	for (std::thread &every_thread: threadsPool)
 	{
@@ -115,8 +113,34 @@ int threads(int numThreads)
 }
 
 
+void runTests(int numOfThreads, int maxThreads, std::string folder)
+{
+	// open file for durations output
+    std::ofstream myfile;
+    myfile.open ("durations.txt");
+
+    for (int i = numOfThreads; i < maxThreads + 1; i++)
+    {
+    	que = iterateImages(folder); // init task queue
+    	printf("Start working with %d threads\n", i);
+
+    	auto t1 = std::chrono::high_resolution_clock::now();
+		threads(i);
+		auto t2 = std::chrono::high_resolution_clock::now();
+
+		auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
+
+		myfile << duration << " " << i << std::endl;
+		printf("%d threads took: %ld\n", i, duration);
+    }
+
+    myfile.close();
+}
+
+
 int main(int argc, char** argv)
 {
+	// Parsing arguments
     if ( argc < 2 )
     {
         printf("usage: DisplayImage <Images_Directory>\n");
@@ -140,27 +164,15 @@ int main(int argc, char** argv)
     {
     	if (isdigit(argv[3][0])){
     		maxThreads = std::atoi(argv[3]);
+    		if (maxThreads > 9) {
+    			maxThreads = numOfThreads;
+    		}
     		printf("Will run compression between %d threads to %d\n", numOfThreads, maxThreads);
     	}
     }
 
-    std::ofstream myfile;
-    myfile.open ("durations.txt");
-    for (int i=numOfThreads; i<maxThreads+1; i++)
-    {
-    	que = iterateImages(folder); // init task queue
-    	printf("Start working with %d threads\n", i);
-
-    	auto t1 = std::chrono::high_resolution_clock::now();
-		threads(i);
-		auto t2 = std::chrono::high_resolution_clock::now();
-		auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
-
-		myfile << duration1 << " " << i << std::endl;
-		std::cout << i << " threads took: " << duration1 << std::endl;
-    }
-
-    myfile.close();
+    // Start running main
+    runTests(numOfThreads, maxThreads, folder);
 
     return 0;
 }

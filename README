@@ -24,8 +24,8 @@ Compiling and Running:
 
 
 Running Commands Examples:
-	- ./GrayImages ~/images/ 1  ->  will run with 1 thread only.
-	- ./GrayImages ~/images/ 4  ->  will run with 4 threads.
-	- ./GrayImages ~/images/ 3 7  ->  will run with 3 to 7 threads (will run 4 times)
-
+	- ./GrayImages images/  ->  will run with defult number of threads (2).
+	- ./GrayImages images/ 1  ->  will run with 1 thread only.
+	- ./GrayImages images/ 4  ->  will run with 4 threads.
+	- ./GrayImages images/ 3 7  ->  will run with 3 to 7 threads (will run 4 times).
 
